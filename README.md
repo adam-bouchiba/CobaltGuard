@@ -2,10 +2,10 @@
 
 Application Windows open source d'audit de sécurité, développée en Python.
 Cette première version affiche l'état de Microsoft Defender et des trois profils
-du pare-feu Windows dans une interface CustomTkinter.
+du pare-feu Windows dans une interface CustomTkinter sombre, futuriste et épurée.
 
 Les collectes sont **en lecture seule**, sans élévation automatique de droits.
-Les résultats restent sur le PC, avec un export JSON facultatif à la demande.
+Les résultats restent sur le PC, avec des exports TXT (Bloc-notes) et JSON facultatifs à la demande.
 Aucun envoi réseau ni journal persistant n'est implémenté dans cette version.
 
 ## Télécharger une version Windows portable
@@ -55,13 +55,28 @@ Le bouton est désactivé pendant la collecte ; la fenêtre reste utilisable.
 Les deux contrôles s'exécutent successivement dans un thread de travail, avec
 un délai maximal de 15 secondes par processus PowerShell.
 
-## Exporter le rapport
+## Tableau de bord et rapports
 
-Après l'analyse, cliquer sur **Exporter le rapport JSON** pour choisir où
-enregistrer le document. L'application ne crée pas de fichier automatiquement.
-Le rapport contient les statuts, observations, recommandations et l'horodatage.
-Il peut révéler des informations locales ou des messages d'erreur : **relire et
-anonymiser le contenu avant toute publication sur GitHub ou partage externe**.
+L'interface sombre noir/violet affiche un état de collecte, trois compteurs
+(nombre de contrôles, résultats conformes, éléments à examiner) et des cartes
+de résultats repliables. Les statuts `UNKNOWN` et `ERROR` restent à examiner :
+ils ne sont **jamais** comptés comme des contrôles conformes.
+
+Après l'analyse, les actions suivantes sont disponibles :
+
+- **Exporter le rapport TXT** : choisir le chemin d'un fichier `.txt` lisible
+  par le Bloc-notes Windows, avec la synthèse, les constats et les recommandations.
+- **Exporter le rapport JSON** : enregistrer les données structurées pour
+  les analyser par programme.
+- **Ouvrir dans Bloc-notes** : disponible uniquement après avoir enregistré
+  un rapport TXT ; ouvre exactement le fichier choisi.
+
+L'application ne crée **aucun** fichier automatiquement lors du scan, et ne
+transmet aucun résultat à un serveur. Les fichiers TXT sont encodés en UTF-8
+avec BOM pour un affichage fiable des accents dans les éditeurs Windows.
+
+Les rapports peuvent révéler des informations locales ou des messages d'erreur :
+**les relire et les anonymiser avant toute publication ou partage**.
 
 ## Lire les résultats
 
@@ -105,11 +120,13 @@ src/cobaltguard/
     checks/firewall.py        Interprétation pure des profils du pare-feu
     gui/app.py                Widgets, thread de travail, affichage et export
     reporting/json_report.py  Export JSON optionnel des résultats
+    reporting/text_report.py  Export TXT lisible dans le Bloc-notes
 tests/unit/
     test_defender.py          Réponses Defender simulées
     test_firewall.py          Profils simulés, informations manquantes et ambiguës
     test_powershell.py        Simulation du processus et de ses erreurs
     test_services.py          Audit complet avec un faux collecteur
+    test_text_report.py       Rapport TXT (statuts, contenu et horodatage)
 docs/architecture.md          Explication des choix et du flux d'exécution
 docs/distribution.md          Processus de distribution, limites et vérifications
 packaging/launcher.py         Point d'entrée PyInstaller
@@ -140,11 +157,13 @@ Sur un poste Windows, effectuer ensuite ce contrôle manuel :
    d'élévation n'apparaît.
 2. Cliquer sur le bouton, déplacer ou redimensionner la fenêtre pendant l'analyse
    et vérifier que le bouton empêche un second lancement simultané.
-3. Vérifier que deux résultats apparaissent, chacun avec son statut et ses détails.
+3. Vérifier que deux résultats apparaissent, que les cartes se déplient et que les compteurs sont cohérents.
 4. Comparer les informations disponibles à **Sécurité Windows → Protection contre
    les virus et menaces** et **Pare-feu et protection réseau**. Un refus d'accès
    doit être explicite, jamais affiché comme `PASS`.
-5. Relancer l'analyse : les cartes doivent être remplacées, pas dupliquées.
+5. Exporter en TXT, puis ouvrir le fichier dans le Bloc-notes et vérifier ses accents.
+6. Exporter en JSON et vérifier que le contenu reste valide.
+7. Relancer l'analyse : les cartes doivent être remplacées, pas dupliquées.
 
 La fenêtre peut être fermée pendant une analyse. Le thread termine les collectes
 restantes en arrière-plan avant la sortie du processus Python, afin de laisser
@@ -171,7 +190,7 @@ comme vérifiée.
 
 Cette étape comprend uniquement l'interface, Defender, le pare-feu et leurs tests.
 Le scanner de fichiers, le chiffrement et l'analyse du démarrage restent pour
-les étapes ultérieures. L'export JSON et une construction Windows automatisée
+les étapes ultérieures. Les exports TXT/JSON et une construction Windows automatisée
 sont maintenant disponibles, mais cette archive bêta doit encore être validée
 manuellement sur Windows avant une diffusion large.
 

@@ -47,8 +47,9 @@ Ne pas réutiliser un tag existant : incrémenter la version pour chaque publica
 - Lancer l'audit et comparer Defender/pare-feu avec Sécurité Windows.
 - Tester le mode Defender passif et les informations manquantes, sans désactiver
   les protections de sa propre machine.
-- Exporter un rapport dans un dossier autorisé, vérifier le JSON et refuser
-  l'enregistrement pour tester l'annulation.
+- Exporter un rapport TXT dans un dossier autorisé, l'ouvrir dans le Bloc-notes
+  et vérifier les accents ; vérifier aussi l'export JSON et l'annulation du dialogue.
+- Vérifier la disposition de l'interface sur petits écrans et les cartes repliables.
 - Fermer la fenêtre pendant la collecte, puis la relancer.
 - Vérifier les faux positifs et tester sur une deuxième machine Windows.
 
