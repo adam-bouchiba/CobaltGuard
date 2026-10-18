@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
+from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
 from cobaltguard.models import CheckResult, Status
+from cobaltguard.reporting.json_report import render_json_report
 from cobaltguard.services import AuditService
 
 
@@ -52,6 +55,7 @@ class CobaltGuardApp(ctk.CTk):
         super().__init__()
         self._service = service if service is not None else AuditService()
         self._events: Queue[tuple[CheckResult, ...]] = Queue()
+        self._last_results: tuple[CheckResult, ...] | None = None
         self._running = False
         self._closing = False
         self._poll_after_id: str | None = None
@@ -79,10 +83,20 @@ class CobaltGuardApp(ctk.CTk):
             anchor="w",
         ).pack(anchor="w", pady=(2, 0))
 
+        actions = ctk.CTkFrame(self, fg_color="transparent")
+        actions.grid(row=1, column=0, padx=24, pady=8, sticky="w")
         self._start_button = ctk.CTkButton(
-            self, text="Lancer l'analyse", command=self._start_analysis, height=38
+            actions, text="Lancer l'analyse", command=self._start_analysis, height=38
         )
-        self._start_button.grid(row=1, column=0, padx=24, pady=8, sticky="w")
+        self._start_button.pack(side="left", padx=(0, 12))
+        self._export_button = ctk.CTkButton(
+            actions,
+            text="Exporter le rapport JSON",
+            command=self._export_results,
+            state="disabled",
+            height=38,
+        )
+        self._export_button.pack(side="left")
         self._progress = ctk.CTkProgressBar(self, mode="determinate")
         self._progress.grid(row=2, column=0, padx=24, pady=(6, 0), sticky="ew")
         self._progress.set(0)
@@ -116,6 +130,8 @@ class CobaltGuardApp(ctk.CTk):
             return
 
         self._running = True
+        self._last_results = None
+        self._export_button.configure(state="disabled")
         self._start_button.configure(state="disabled")
         self._status_label.configure(text="Analyse en cours…")
         for widget in self._results_frame.winfo_children():
@@ -162,7 +178,9 @@ class CobaltGuardApp(ctk.CTk):
         self._finish_analysis(results)
 
     def _finish_analysis(self, results: tuple[CheckResult, ...]) -> None:
+        self._last_results = results
         self._running = False
+        self._export_button.configure(state="normal")
         self._progress.stop()
         self._progress.configure(mode="determinate")
         self._progress.set(0)
@@ -213,6 +231,37 @@ class CobaltGuardApp(ctk.CTk):
                 justify="left",
                 anchor="w",
             ).grid(row=3, column=0, columnspan=2, padx=16, pady=(0, 12), sticky="ew")
+
+    def _export_results(self) -> None:
+        """Enregistrer un rapport uniquement sur demande explicite."""
+        if self._running or self._closing or self._last_results is None:
+            return
+        path = filedialog.asksaveasfilename(
+            parent=self,
+            title="Enregistrer le rapport CobaltGuard",
+            defaultextension=".json",
+            initialfile="cobaltguard-report.json",
+            filetypes=[("Rapport JSON", "*.json")],
+        )
+        if not path:
+            return
+        try:
+            Path(path).write_text(
+                render_json_report(self._last_results), encoding="utf-8"
+            )
+        except OSError as exc:
+            messagebox.showerror(
+                "Export impossible",
+                f"Le rapport n'a pas pu être enregistré : {exc}",
+                parent=self,
+            )
+            return
+        messagebox.showinfo(
+            "Rapport enregistré",
+            "Le rapport est enregistré localement. Relisez-le avant de le partager : "
+            "des informations sur votre ordinateur peuvent y figurer.",
+            parent=self,
+        )
 
     def _close(self) -> None:
         if self._closing:

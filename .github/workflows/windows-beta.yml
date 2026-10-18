@@ -1,0 +1,64 @@
+name: Windows beta
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install project and test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run unit tests
+        run: python -m pytest -q
+
+  windows-build:
+    name: Package portable Windows x64
+    needs: tests
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install package and PyInstaller
+        run: python -m pip install -e . "pyinstaller>=6,<7"
+      - name: Build CobaltGuard.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pyinstaller --noconfirm --clean --onedir --windowed --name CobaltGuard --collect-all customtkinter packaging/launcher.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "dist/CobaltGuard/CobaltGuard.exe")) { throw "Missing executable" }
+          Compress-Archive -Path "dist/CobaltGuard" -DestinationPath "dist/CobaltGuard-windows-x64.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CobaltGuard-windows-x64
+          path: dist/CobaltGuard-windows-x64.zip
+          if-no-files-found: error
+      - name: Publish pre-release when a version tag is pushed
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" "dist/CobaltGuard-windows-x64.zip" --title "CobaltGuard $env:GITHUB_REF_NAME" --notes "Bêta Windows x64 non signée, à tester avant diffusion large. Extraire toute l'archive et lancer CobaltGuard.exe." --prerelease
