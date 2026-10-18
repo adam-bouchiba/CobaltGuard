@@ -5,8 +5,27 @@ Cette première version affiche l'état de Microsoft Defender et des trois profi
 du pare-feu Windows dans une interface CustomTkinter.
 
 Les collectes sont **en lecture seule**, sans élévation automatique de droits.
-Les résultats restent en mémoire sur le PC ; aucun envoi réseau, export ni
-journal persistant n'est implémenté dans cette version.
+Les résultats restent sur le PC, avec un export JSON facultatif à la demande.
+Aucun envoi réseau ni journal persistant n'est implémenté dans cette version.
+
+## Télécharger une version Windows portable
+
+Une **construction automatique Windows x64** produit un fichier
+`CobaltGuard-windows-x64.zip` après le passage des tests.
+
+- Dans **Actions → Windows beta** : ouvrir une exécution réussie et télécharger
+  l'artifact `CobaltGuard-windows-x64`, puis extraire l'archive ZIP.
+- Quand une version est publiée : la télécharger depuis **Releases** (le tag
+  `v0.1.0` n'est pas créé automatiquement pour éviter une publication non testée).
+- Dans le dossier extrait, lancer `CobaltGuard.exe`. Python n'est pas requis.
+  **Ne pas** déplacer le fichier EXE seul : les bibliothèques du dossier sont nécessaires.
+
+**Important :** ce programme est une **bêta non signée**. Windows SmartScreen
+peut avertir que l'éditeur n'est pas reconnu. N'exécutez pas un programme dont
+la provenance ou l'archive vous semble douteuse. Nous recommandons de vérifier
+la provenance GitHub et de tester l'application d'abord sur une machine de test.
+
+Instructions de création d'une release et checklist : [distribution Windows](docs/distribution.md).
 
 ## Installer et lancer sous Windows
 
@@ -35,6 +54,14 @@ Cliquer sur **Lancer l'analyse**. Aucun contrôle ne démarre à l'ouverture.
 Le bouton est désactivé pendant la collecte ; la fenêtre reste utilisable.
 Les deux contrôles s'exécutent successivement dans un thread de travail, avec
 un délai maximal de 15 secondes par processus PowerShell.
+
+## Exporter le rapport
+
+Après l'analyse, cliquer sur **Exporter le rapport JSON** pour choisir où
+enregistrer le document. L'application ne crée pas de fichier automatiquement.
+Le rapport contient les statuts, observations, recommandations et l'horodatage.
+Il peut révéler des informations locales ou des messages d'erreur : **relire et
+anonymiser le contenu avant toute publication sur GitHub ou partage externe**.
 
 ## Lire les résultats
 
@@ -76,13 +103,17 @@ src/cobaltguard/
     windows/powershell.py     Collectes fixes, processus, délais, décodage JSON
     checks/defender.py        Interprétation pure des observations Defender
     checks/firewall.py        Interprétation pure des profils du pare-feu
-    gui/app.py                Widgets, thread de travail et file de résultats
+    gui/app.py                Widgets, thread de travail, affichage et export
+    reporting/json_report.py  Export JSON optionnel des résultats
 tests/unit/
     test_defender.py          Réponses Defender simulées
     test_firewall.py          Profils simulés, informations manquantes et ambiguës
     test_powershell.py        Simulation du processus et de ses erreurs
     test_services.py          Audit complet avec un faux collecteur
 docs/architecture.md          Explication des choix et du flux d'exécution
+docs/distribution.md          Processus de distribution, limites et vérifications
+packaging/launcher.py         Point d'entrée PyInstaller
+.github/workflows/windows-beta.yml   Tests et build Windows automatiques
 ```
 
 Les `__init__.py` marquent les packages Python. Aucun fichier du moteur n'importe
@@ -139,7 +170,9 @@ comme vérifiée.
 ## Périmètre actuel
 
 Cette étape comprend uniquement l'interface, Defender, le pare-feu et leurs tests.
-Le scanner de fichiers, le chiffrement, l'analyse du démarrage, les exports et la
-construction d'un exécutable PyInstaller appartiennent à des étapes ultérieures.
+Le scanner de fichiers, le chiffrement et l'analyse du démarrage restent pour
+les étapes ultérieures. L'export JSON et une construction Windows automatisée
+sont maintenant disponibles, mais cette archive bêta doit encore être validée
+manuellement sur Windows avant une diffusion large.
 
 Licence : [MIT](LICENSE).
